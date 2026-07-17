@@ -23,7 +23,7 @@ RUN \
     && echo "deb ${URL} bionic main" \
         > /etc/apt/sources.list.d/bionic-main.list \
     \
-    && curl -sL "https://deb.nodesource.com/setup_14.x" | bash - \
+    && curl -sL "https://deb.nodesource.com/setup_16.x" | bash - \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         mongodb-server \
