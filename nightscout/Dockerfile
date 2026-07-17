@@ -48,27 +48,30 @@ RUN \
     && git clone --depth 1 --branch ${NIGHTSCOUT_VERSION} https://github.com/nightscout/cgm-remote-monitor.git /opt/app \
     \
     && cd /opt/app \
-    # 1. Отключаем генерацию карт кода (Source Maps) для экономии ОЗУ
+    # Отключаем генерацию тяжелых Source Maps для экономии ОЗУ при сборке образа
     && sed -i "s/devtool: .*,/devtool: false,/g" webpack/webpack.config.js \
     && sed -i "s/target: 'web',/target: 'web', resolve: { fallback: { 'util': false, 'crypto': false, 'stream': false } },/g" webpack/webpack.config.js \
     \
     && npm install --legacy-peer-deps \
-    # 2. Принудительно собираем Webpack ОДИН РАЗ прямо сейчас
+    # Принудительно собираем Webpack ОДИН РАЗ на этапе установки аддона
     && ./node_modules/.bin/webpack --mode production --config webpack/webpack.config.js \
     && npm run-script post-generate-keys \
     && npm run env \
-    # 3. ХАК: Вырезаем postinstall из package.json, чтобы контейнер не пытался запускать Webpack на старте
-    && sed -i 's/"postinstall":.*/"postinstall": "echo skip",/g' package.json \
+    \
+    # ХАК: Полностью подменяем бинарник webpack заглушкой, чтобы он больше не запускался внутри контейнера
+    && rm -f /opt/app/node_modules/.bin/webpack \
+    && echo -e '#!/bin/sh\necho "Webpack generation skipped"' > /opt/app/node_modules/.bin/webpack \
+    && chmod +x /opt/app/node_modules/.bin/webpack \
     && npm audit fix --force || true
 
 RUN npm install jsdom@21.1.1
 
 VOLUME ["/data/db"]
 
-# Копируем файловую систему (проверяем оба варианта расположения)
-COPY . /
+# Копируем файловую систему
+COPY rootfs /
 
-# Патчим nginx, чтобы не падал без SSL
+# Патчим nginx.sh, чтобы он не падал из-за отсутствия SSL
 RUN if [ -f /etc/cont-init.d/nginx.sh ]; then sed -i 's/exit 1/exit 0/g' /etc/cont-init.d/nginx.sh; fi
 
 ARG BUILD_DATE
