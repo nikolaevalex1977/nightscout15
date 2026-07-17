@@ -48,10 +48,9 @@ RUN \
     && git clone --depth 1 --branch ${NIGHTSCOUT_VERSION} https://github.com/nightscout/cgm-remote-monitor.git /opt/app \
     \
     && cd /opt/app \
-    # ПОЛНОСТЬЮ убираем webpack из runtime-запуска (он ломает старт)
-    && sed -i 's/"postinstall": ".*"/"postinstall": "echo webpack_skipped"/g' package.json \
-    \
     && npm install --legacy-peer-deps \
+    # Принудительно собираем клиентскую часть Webpack внутри Docker-образа
+    && npm run postinstall \
     && npm run env \
     && npm audit fix --force || true
 
