@@ -12,7 +12,7 @@ WORKDIR /opt/app
 ARG BUILD_ARCH=amd64
 ARG NIGHTSCOUT_VERSION=15.0.7
 
-# Ограничиваем использование памяти для Node.js, чтобы избежать ошибки 137 (Killed)
+# Ограничиваем аппетиты Node.js по памяти
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # hadolint ignore=DL3008
@@ -31,7 +31,7 @@ RUN \
     && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
     && mkdir -p /etc/apt/keyrings \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
+    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
     \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -48,8 +48,7 @@ RUN \
     \
     && git clone --depth 1 --branch ${NIGHTSCOUT_VERSION} https://github.com/nightscout/cgm-remote-monitor.git /opt/app \
     \
-    && npm install \
-    && npm run postinstall \
+    && npm install --legacy-peer-deps \
     && npm run env \
     && npm audit fix --force || true
 
