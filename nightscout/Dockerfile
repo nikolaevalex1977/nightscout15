@@ -12,7 +12,6 @@ WORKDIR /opt/app
 ARG BUILD_ARCH=amd64
 ARG NIGHTSCOUT_VERSION=15.0.7
 
-# Лимит памяти для Node.js
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # hadolint ignore=DL3008
@@ -44,16 +43,16 @@ RUN \
         nginx \
         libnginx-mod-http-lua \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
+    rm -rf /var/lib/apt/lists/* \
     \
     && git clone --depth 1 --branch ${NIGHTSCOUT_VERSION} https://github.com/nightscout/cgm-remote-monitor.git /opt/app \
     \
     && cd /opt/app \
-    # Удаляем webpack из postinstall, чтобы он не вызывался при старте контейнера
-    && sed -i 's/webpack --mode production --config webpack\/webpack.config.js && //g' package.json \
+    # Хак для Webpack 5: внедряем отключение полифиллов core-модулей в конфиг сборки
+    && sed -i "s/target: 'web',/target: 'web', resolve: { fallback: { 'util': false, 'crypto': false, 'stream': false } },/g" webpack/webpack.config.js \
     \
     && npm install --legacy-peer-deps \
-    && npm run postinstall || true \
+    && npm run postinstall \
     && npm run env \
     && npm audit fix --force || true
 
@@ -61,15 +60,12 @@ RUN npm install jsdom@21.1.1
 
 VOLUME ["/data/db"]
 
-# Copy root filesystem
 COPY rootfs /
 
-# Build arguments
 ARG BUILD_DATE
 ARG BUILD_REF
 ARG BUILD_VERSION
 
-# Labels
 LABEL \
     io.hass.name="Nightscout" \
     io.hass.description="Nightscout acts as a web-based CGM (Continuous Glucose Monitor) to allow multiple caregivers to remotely view a patients glucose data in realtime." \
