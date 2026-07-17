@@ -12,7 +12,7 @@ WORKDIR /opt/app
 ARG BUILD_ARCH=amd64
 ARG NIGHTSCOUT_VERSION=15.0.7
 
-# Ограничиваем использование памяти для Node.js
+# Лимит памяти для Node.js
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # hadolint ignore=DL3008
@@ -48,8 +48,11 @@ RUN \
     \
     && git clone --depth 1 --branch ${NIGHTSCOUT_VERSION} https://github.com/nightscout/cgm-remote-monitor.git /opt/app \
     \
+    && cd /opt/app \
+    # Удаляем webpack из postinstall, чтобы он не вызывался при старте контейнера
+    && sed -i 's/webpack --mode production --config webpack\/webpack.config.js && //g' package.json \
+    \
     && npm install --legacy-peer-deps \
-    && npm install util \
     && npm run postinstall || true \
     && npm run env \
     && npm audit fix --force || true
