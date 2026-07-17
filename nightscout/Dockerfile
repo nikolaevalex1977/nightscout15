@@ -12,7 +12,7 @@ WORKDIR /opt/app
 ARG BUILD_ARCH=amd64
 ARG NIGHTSCOUT_VERSION=15.0.7
 
-# Ограничиваем аппетиты Node.js по памяти
+# Ограничиваем использование памяти для Node.js, чтобы избежать Killed (137)
 ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # hadolint ignore=DL3008
@@ -49,6 +49,7 @@ RUN \
     && git clone --depth 1 --branch ${NIGHTSCOUT_VERSION} https://github.com/nightscout/cgm-remote-monitor.git /opt/app \
     \
     && npm install --legacy-peer-deps \
+    && npm run postinstall || true \
     && npm run env \
     && npm audit fix --force || true
 
